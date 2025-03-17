@@ -14,7 +14,8 @@ if [[ -z "$JSON" ]]; then
 fi
 
 # Extraire la valeur de l'indice SPX
-PRICE=$(echo "$JSON" | jq -r '.quote.lastSale')
+PRICE=$(echo "$JSON" | jq -r '.data.current_price')
+
 
 # Récupérer la date actuelle
 DATE=$(date +"%Y-%m-%d %H:%M:%S")
