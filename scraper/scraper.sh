@@ -1,34 +1,42 @@
 #!/bin/bash
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# URL de l'API ZoneBourse pour récupérer les données du S&P 500
-URL="https://www.zonebourse.com/mods_a/charts/TV/function/history?from=1741881600&to=1742313600&symbol=4985&resolution=D&requestType=GET&src=itfp"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Récupérer les données JSON
-JSON=$(curl -s -H "User-Agent: Mozilla/5.0" "$URL")
+# Dossier où enregistrer les prix
+OUTPUT_DIR="$SCRIPT_DIR/prices"
+mkdir -p "$OUTPUT_DIR"
 
-# Vérifier si la requête a réussi
-if [[ -z "$JSON" ]]; then
-    echo "Erreur : Impossible de récupérer les données."
-    exit 1
-fi
+# Fichier CSV
+CSV_FILE="/home/valen/projects/web-scraping-dashboard/scraper/prices/bitcoin_prices.csv"
 
-# Vérifier si `jq` est installé
+# URL de l'API Bitstack
+URL="https://api.bitstack-app.com/pricetagger/v1/stats/web?currency=EUR"
+
 if ! command -v jq &> /dev/null; then
     echo "Erreur : jq n'est pas installé. Installez-le avec 'sudo apt install jq'."
     exit 1
 fi
 
-# Extraire la dernière valeur de clôture ("c" pour close)
-PRICE=$(echo "$JSON" | jq -r '.c[-1]')
 
-# Récupérer la date actuelle
+JSON=$(curl -s -H "User-Agent: Mozilla/5.0" "$URL")
+
+
+if [[ -z "$JSON" ]]; then
+    echo "Erreur : Impossible de récupérer les données."
+    exit 1
+fi
+
+# Extraire le prix du Bitcoin en EUR
+PRICE=$(echo "$JSON" | jq -r '.currentPrice')
+
+
 DATE=$(date +"%Y-%m-%d %H:%M:%S")
 
-# Vérifier si le prix a bien été extrait
+
 if [[ -n "$PRICE" && "$PRICE" != "null" ]]; then
-    echo "$DATE, $PRICE" >> snp500_prices.csv
-    echo "Valeur du S&P 500 : $PRICE USD"
+    echo "$DATE, $PRICE" >> "$CSV_FILE"
+    echo "Valeur Bitcoin : $PRICE EUR"
 else
-    echo "Erreur : Impossible d'extraire la valeur de clôture du S&P 500."
+    echo "Erreur : Impossible d'extraire la valeur du Bitcoin."
 fi
