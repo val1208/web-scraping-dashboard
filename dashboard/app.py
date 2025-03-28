@@ -17,6 +17,7 @@ app = dash.Dash(__name__)
 app.layout = html.Div([
     html.H1("Bitcoin Price Tracker 💰"),
     dcc.Graph(id="price-chart"),
+    dcc.Graph(id="price-distribution-chart"),
     html.Button("Récupérer les données du site", id="scrape-button", n_clicks=0),
     html.Div(id="last-update", style={"padding": "10px", "fontSize": "18px", "fontWeight": "bold"}),
     html.Div(id="last-values-table", style={"marginTop": "20px"}),    
@@ -30,6 +31,7 @@ app.layout = html.Div([
 # mettre à jour le graphique
 @app.callback(
     [Output("price-chart", "figure"),
+    Output("price-distribution-chart", "figure"),
     Output("last-update", "children"),
     Output("last-values-table", "children")],
     [Input("interval-update", "n_intervals"),
@@ -48,26 +50,25 @@ def update_graph(n_intervals, n_clicks):
         fig.add_trace(go.Scatter(x=df['Date'], y=df['Moving Average'], mode='lines', name='Moyenne Mobile', line=dict(color="blue", width=2)))
         fig.update_layout(xaxis_title="Date", yaxis_title="Prix (USD)", template="plotly_dark")
 
-        last_update = f"Dernière mise à jour: {df['Date'].iloc[-1].strftime('%Y-%m-%d %H:%M:%S')}"
-        
-        last_10_values = df.tail(10)
+        fig_distribution = px.histogram(df, x="Price", nbins=30, title="Distribution des prix du Bitcoin")
+        fig_distribution.update_layout(xaxis_title="Prix (USD)", yaxis_title="Fréquence", template="plotly_dark")
 
-        # Créer le tableau HTML pour afficher les 10 dernières valeurs
+        # Dernière mise à jour
+        last_update = f"Dernière mise à jour: {df['Date'].iloc[-1].strftime('%Y-%m-%d %H:%M:%S')}"
+
+        # Créer le tableau des 10 dernières valeurs
+        last_10_values = df.tail(10)
         table = html.Table([
-            html.Thead(
-                html.Tr([html.Th("Date"), html.Th("Prix (USD)")])
-            ),
-            html.Tbody([
-                html.Tr([html.Td(row['Date'].strftime('%Y-%m-%d %H:%M:%S')), html.Td(f"{row['Price']:.2f}")])
-                for _, row in last_10_values.iterrows()
-            ])
+            html.Thead(html.Tr([html.Th("Date"), html.Th("Prix (USD)")]))
+        ] + [
+            html.Tr([html.Td(row['Date'].strftime('%Y-%m-%d %H:%M:%S')), html.Td(f"${row['Price']:.2f}")])
+            for _, row in last_10_values.iterrows()
         ])
 
-        return fig, last_update, table
-
+        return fig, fig_distribution, last_update, table
     except Exception as e:
         print("Erreur de lecture du CSV:", e)
-        return px.line(title="Aucune donnée disponible"), ""
+        return px.line(title="Aucune donnée disponible"), go.Figure(), "", ""
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8050, debug=True)
