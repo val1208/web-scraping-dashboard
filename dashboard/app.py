@@ -3,6 +3,7 @@ from dash import dcc, html
 from dash.dependencies import Input, Output
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 # Fichier CSV avec les prix
 CSV_FILE = "../scraper/prices/bitcoin_prices.csv"
@@ -32,10 +33,19 @@ def update_graph(n):
     try:
         df = pd.read_csv(CSV_FILE, names=["Date", "Price"], parse_dates=["Date"])
         df = df.sort_values(by="Date")  # Trier par date
-
-        fig = px.line(df, x="Date", y="Price", title="Évolution du prix du Bitcoin")
-        fig.update_traces(line=dict(color="gold", width=2))
         
+        df['Moving Average'] = df['Price'].rolling(window=7).mean()
+
+        fig = px.line(df, x="Date", y="Price", title="Évolution du prix du Bitcoin avec Moyenne Mobile")
+        
+        fig.add_trace(go.Scatter(x=df['Date'], y=df['Moving Average'], mode='lines', name='Moyenne Mobile', line=dict(color="blue", width=2)))
+
+        fig.update_layout(
+            xaxis_title="Date",
+            yaxis_title="Prix (USD)",
+            template="plotly_dark"  
+        )
+
         last_update = f"Dernière mis à jour: {df['Date'].iloc[-1].strftime('%Y-%m-%d %H:%M:%S')}"
 
         return fig, last_update
