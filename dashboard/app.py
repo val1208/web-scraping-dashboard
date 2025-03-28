@@ -14,6 +14,7 @@ app = dash.Dash(__name__)
 app.layout = html.Div([
     html.H1("Bitcoin Price Tracker 💰"),
     dcc.Graph(id="price-chart"),
+    html.Div(id="last-update", style={"padding": "10px", "fontSize": "18px", "fontWeight": "bold"}),
     dcc.Interval(
         id="interval-update",
         interval=5 * 60 * 1000,  # Mettre à jour toutes les 5 minutes
@@ -23,7 +24,8 @@ app.layout = html.Div([
 
 # mettre à jour le graphique
 @app.callback(
-    Output("price-chart", "figure"),
+    [Output("price-chart", "figure"),
+    Output("last-update", "children")],
     Input("interval-update", "n_intervals")
 )
 def update_graph(n):
@@ -33,10 +35,13 @@ def update_graph(n):
 
         fig = px.line(df, x="Date", y="Price", title="Évolution du prix du Bitcoin")
         fig.update_traces(line=dict(color="gold", width=2))
-        return fig
+        
+        last_update = f"Dernière mis à jour: {df['Date'].iloc[-1].strftime('%Y-%m-%d %H:%M:%S')}"
+
+        return fig, last_update
     except Exception as e:
         print("Erreur de lecture du CSV:", e)
         return px.line(title="Aucune donnée disponible")
 
 if __name__ == "__main__":
-    app.run_server(host="0.0.0.0", port=8050, debug=True)
+    app.run(host="0.0.0.0", port=8050, debug=True)
