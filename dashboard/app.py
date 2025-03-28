@@ -1,10 +1,12 @@
 import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import subprocess
+from sklearn.linear_model import LinearRegression
 
 # Fichier CSV avec les prix
 CSV_FILE = "../scraper/prices/bitcoin_prices.csv"
@@ -46,14 +48,30 @@ def update_graph(n_intervals, n_clicks):
         df = df.sort_values(by="Date")
         df['Moving Average'] = df['Price'].rolling(window=7).mean()
 
-        fig = px.line(df, x="Date", y="Price", title="Évolution du prix du Bitcoin avec Moyenne Mobile")
-        fig.add_trace(go.Scatter(x=df['Date'], y=df['Moving Average'], mode='lines', name='Moyenne Mobile', line=dict(color="blue", width=2)))
-        fig.update_layout(xaxis_title="Date", yaxis_title="Prix (USD)", template="plotly_dark")
+        df['Timestamp'] = df['Date'].astype(np.int64) // 10**9  # Conversion de la date en timestamp
+        X = df['Timestamp'].values.reshape(-1, 1)  # Caractéristiques
+        y = df['Price'].values  # Cible
+
+        model = LinearRegression()
+        model.fit(X, y)
+        df['Prediction'] = model.predict(X)
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Scatter(x=df['Date'], y=df['Price'], mode='lines', name='Prix réel', line=dict(color='blue')))
+        fig.add_trace(go.Scatter(x=df['Date'], y=df['Moving Average'], mode='lines', name='Moyenne mobile (7 jours)', line=dict(color='green', dash='dot')))
+        fig.add_trace(go.Scatter(x=df['Date'], y=df['Prediction'], mode='lines', name='Prédiction (Régression linéaire)', line=dict(color='red', dash='dash')))
+
+        fig.update_layout(
+            title="Évolution du prix du Bitcoin avec régression linéaire et moyenne mobile",
+            xaxis_title="Date",
+            yaxis_title="Prix (USD)",
+            template="plotly_dark"
+        )
 
         fig_distribution = px.histogram(df, x="Price", nbins=30, title="Distribution des prix du Bitcoin")
         fig_distribution.update_layout(xaxis_title="Prix (USD)", yaxis_title="Fréquence", template="plotly_dark")
 
-        # Dernière mise à jour
         last_update = f"Dernière mise à jour: {df['Date'].iloc[-1].strftime('%Y-%m-%d %H:%M:%S')}"
 
         # Créer le tableau des 10 dernières valeurs
