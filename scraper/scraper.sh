@@ -8,7 +8,8 @@ OUTPUT_DIR="$SCRIPT_DIR/prices"
 mkdir -p "$OUTPUT_DIR"
 
 # Fichier CSV
-CSV_FILE="/home/valen/projects/web-scraping-dashboard/scraper/prices/bitcoin_prices.csv"
+CSV_FILE="/home/ubuntu/web-scraping-dashboard/scraper/prices/bitcoin_prices.csv"
+
 
 # URL de l'API Bitstack
 URL="https://api.bitstack-app.com/pricetagger/v1/stats/web?currency=EUR"
